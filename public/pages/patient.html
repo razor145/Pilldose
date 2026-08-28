@@ -134,9 +134,61 @@
 </section>
 <!-- Main Pillbox Grid -->
 <section class="bg-surface-container-lowest rounded-3xl p-8 shadow-sm overflow-visible">
-    <div id="patientGridHeader" class="grid grid-cols-7 gap-4 mb-4"></div>
 
-    <div id="patientGrid" class="grid grid-cols-7 gap-4 overflow-visible"></div>
+    <!-- Week Navigation -->
+    <div class="flex items-center justify-between mb-6">
+
+        <div>
+            <h2 class="text-lg font-bold text-on-surface">
+                Medication Schedule
+            </h2>
+
+            <p id="patientDateRange"
+               class="text-xs text-on-surface-variant mt-1">
+            </p>
+        </div>
+
+        <div class="flex items-center gap-1 bg-surface-container-highest rounded-lg p-1">
+
+            <button
+                onclick="changePatientWeek(-1)"
+                class="px-3 py-2 rounded-md hover:bg-white transition"
+                title="Previous Week"
+            >
+                <span class="material-symbols-outlined text-lg">
+                    chevron_left
+                </span>
+            </button>
+
+            <button
+                onclick="goToPatientCurrentWeek()"
+                class="px-3 py-2 text-xs font-bold rounded-md hover:bg-white transition"
+            >
+                This Week
+            </button>
+
+            <button
+                onclick="changePatientWeek(1)"
+                class="px-3 py-2 rounded-md hover:bg-white transition"
+                title="Next Week"
+            >
+                <span class="material-symbols-outlined text-lg">
+                    chevron_right
+                </span>
+            </button>
+
+        </div>
+
+    </div>
+
+    <div id="patientGridHeader"
+         class="grid grid-cols-7 gap-4 mb-4">
+    </div>
+
+    <div id="patientGrid"
+         class="grid grid-cols-7 gap-4 overflow-visible">
+    </div>
+
 </section>
 </div>
 <!-- Sidebar / Right Panel -->
@@ -229,107 +281,294 @@
 const user = JSON.parse(
   localStorage.getItem("user")
 );
+// ==========================================
+// PATIENT WEEK NAVIGATION
+// ==========================================
+
+// 0  = current week
+// -1 = previous week
+// +1 = next week
+
+let patientWeekOffset = 0;
 
 if (!user) {
   window.location.href = "index.html";
 }
 
-function generatePatientHeader() {
-  const container = document.getElementById("patientGridHeader");
-  container.innerHTML = "";
+function getPatientWeekStart(offset = 0) {
 
-  const today = new Date();
-  const daysShort = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const today = new Date();
 
-  for (let i = 0; i < 7; i++) {
-    const d = new Date();
-    d.setDate(today.getDate() + i);
+    today.setHours(0, 0, 0, 0);
 
-    container.innerHTML += `
-      <div class="text-center text-xs font-bold text-outline uppercase tracking-widest py-2">
-        ${daysShort[d.getDay()]} <br/>
-        <span class="text-sm">${d.getDate()}</span>
-      </div>
-    `;
-  }
+    // Sunday = beginning of week
+    const day = today.getDay();
+
+    const start = new Date(today);
+
+    start.setDate(
+        today.getDate() - day
+    );
+
+    // Move to selected week
+    start.setDate(
+        start.getDate() + (offset * 7)
+    );
+
+    return start;
 }
-function renderPatientGrid(data) {
 
-  const container =
-    document.getElementById("patientGrid");
 
-  const header =
-    document.getElementById("patientGridHeader");
+function getPatientGridDate(dayOffset) {
 
-  // ✅ NO SCHEDULE
+    const start =
+        getPatientWeekStart(patientWeekOffset);
 
-  if (!data || data.length === 0) {
+    const date =
+        new Date(start);
 
-    container.innerHTML = `
-      <div class="col-span-7 bg-surface-container-lowest rounded-2xl p-8 text-center">
-        
-        <span class="material-symbols-outlined text-5xl text-outline mb-3">
-          medication
-        </span>
+    date.setDate(
+        start.getDate() + dayOffset
+    );
 
-        <h3 class="text-lg font-bold text-on-surface mb-2">
-          No Medication Schedule
-        </h3>
+    return date;
+}
 
-        <p class="text-sm text-on-surface-variant">
-          Your caregiver has not assigned any medication schedule yet.
-        </p>
 
-      </div>
-    `;
+function formatLocalDate(date) {
 
-    // ✅ hide weekday header
-    header.style.display = "none";
+    const year =
+        date.getFullYear();
 
-    return;
-  }
+    const month =
+        String(date.getMonth() + 1)
+            .padStart(2, "0");
 
-  // ✅ show header again
-  header.style.display = "grid";
+    const day =
+        String(date.getDate())
+            .padStart(2, "0");
 
-  container.innerHTML = "";
+    return `${year}-${month}-${day}`;
+}
 
-  const today = new Date();
 
-  const slots = [
-    "MORNING",
-    "MIDDAY",
-    "EVENING"
-  ];
+function generatePatientHeader() {
 
-  slots.forEach(slot => {
+    const container =
+        document.getElementById(
+            "patientGridHeader"
+        );
+
+    container.innerHTML = "";
+
+    const daysShort = [
+        "Sun",
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat"
+    ];
+
+    const today = new Date();
+
+    today.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 7; i++) {
 
-      const d = new Date();
+        const d =
+            getPatientGridDate(i);
 
-      d.setDate(
-        today.getDate() + i
-      );
+        const isToday =
+            d.getTime() === today.getTime();
 
-      const formatted =
-        d.toISOString().split("T")[0];
+        container.innerHTML += `
+            <div
+                class="
+                    text-center
+                    text-xs
+                    font-bold
+                    uppercase
+                    tracking-widest
+                    py-2
+                    rounded-lg
+                    ${isToday ? "bg-blue-50 text-blue-700" : "text-outline"}
+                "
+            >
 
-      const items =
-        data.filter(item =>
-          item.date === formatted &&
-          item.timeSlot === slot
-        );
+                ${daysShort[d.getDay()]}
+                <br/>
 
-      container.innerHTML +=
-        createPatientCell(
-          items,
-          slot,
-          formatted
-        );
+                <span class="text-sm">
+                    ${d.getDate()}
+                </span>
+
+                ${
+                    isToday
+                        ? `
+                            <span class="block text-[9px] mt-1">
+                                Today
+                            </span>
+                          `
+                        : ""
+                }
+
+            </div>
+        `;
     }
-  });
+
+    updatePatientDateRange();
 }
+function updatePatientDateRange() {
+
+    const start =
+        getPatientWeekStart(
+            patientWeekOffset
+        );
+
+    const end =
+        new Date(start);
+
+    end.setDate(
+        start.getDate() + 6
+    );
+
+    const options = {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+    };
+
+    const startText =
+        start.toLocaleDateString(
+            "en-US",
+            options
+        );
+
+    const endText =
+        end.toLocaleDateString(
+            "en-US",
+            options
+        );
+
+    document.getElementById(
+        "patientDateRange"
+    ).innerText =
+        `${startText} - ${endText}`;
+}
+function renderPatientGrid(data) {
+
+    const container =
+        document.getElementById(
+            "patientGrid"
+        );
+
+    const header =
+        document.getElementById(
+            "patientGridHeader"
+        );
+
+    // ==========================================
+    // NO SCHEDULE
+    // ==========================================
+
+    if (!data || data.length === 0) {
+
+        container.innerHTML = `
+            <div class="col-span-7 bg-surface-container-lowest rounded-2xl p-8 text-center">
+
+                <span class="material-symbols-outlined text-5xl text-outline mb-3">
+                    medication
+                </span>
+
+                <h3 class="text-lg font-bold text-on-surface mb-2">
+                    No Medication Schedule
+                </h3>
+
+                <p class="text-sm text-on-surface-variant">
+                    Your caregiver has not assigned any medication schedule yet.
+                </p>
+
+            </div>
+        `;
+
+        header.style.display = "none";
+
+        return;
+    }
+
+
+    
+
+    // Show header
+    header.style.display = "grid";
+
+    container.innerHTML = "";
+
+    const slots = [
+        "MORNING",
+        "MIDDAY",
+        "EVENING"
+    ];
+
+    // ==========================================
+    // BUILD 3 x 7 GRID
+    // ==========================================
+
+    slots.forEach(slot => {
+
+        for (let i = 0; i < 7; i++) {
+
+            const d =
+                getPatientGridDate(i);
+
+            const formatted =
+                formatLocalDate(d);
+
+            const items =
+                data.filter(item =>
+
+                    item.date === formatted &&
+
+                    item.timeSlot
+                        ?.toString()
+                        .trim()
+                        .toUpperCase() === slot
+
+                );
+
+            container.innerHTML +=
+                createPatientCell(
+                    items,
+                    slot,
+                    formatted
+                );
+        }
+    });
+}
+
+async function changePatientWeek(direction) {
+
+    patientWeekOffset += direction;
+
+    // Update weekday/date header
+    generatePatientHeader();
+
+    // Reload/render using selected week
+    await loadPatientSchedule();
+}
+
+
+async function goToPatientCurrentWeek() {
+
+    patientWeekOffset = 0;
+
+    generatePatientHeader();
+
+    await loadPatientSchedule();
+}
+
 const SLOT_TIME = {
   MORNING: { start: 5, end: 11 },
   MIDDAY: { start: 12, end: 17 },
@@ -338,50 +577,51 @@ const SLOT_TIME = {
 
 function getCellState(items, slot, dateStr) {
 
-  const now = new Date();
+    const now = new Date();
 
-  const today =
-    now.toISOString().split("T")[0];
+    const today =
+        formatLocalDate(now);
 
-  const hour =
-    now.getHours();
+    const hour =
+        now.getHours();
 
-  const slotRange =
-    SLOT_TIME[slot];
+    const slotRange =
+        SLOT_TIME[slot];
 
-  if (!slotRange)
-    return "UPCOMING";
+    if (!slotRange)
+        return "UPCOMING";
 
-  const isTaken =
-    items.some(i => i.status === "TAKEN");
+    const isTaken =
+        items.some(
+            i => i.status === "TAKEN"
+        );
 
-  // TAKEN always wins
-  if (isTaken)
-    return "TAKEN";
+    // TAKEN always wins
+    if (isTaken)
+        return "TAKEN";
 
-  // FUTURE DAYS
-  if (dateStr > today)
-    return "UPCOMING";
+    // FUTURE DAYS
+    if (dateStr > today)
+        return "UPCOMING";
 
-  // PAST DAYS
-  if (dateStr < today)
+    // PAST DAYS
+    if (dateStr < today)
+        return "MISSED";
+
+    // ==========================================
+    // TODAY
+    // ==========================================
+
+    if (hour < slotRange.start)
+        return "UPCOMING";
+
+    if (
+        hour >= slotRange.start &&
+        hour <= slotRange.end
+    )
+        return "ACTIVE";
+
     return "MISSED";
-
-  // ===== TODAY ONLY =====
-
-  // BEFORE SLOT
-  if (hour < slotRange.start)
-    return "UPCOMING";
-
-  // DURING SLOT
-  if (
-    hour >= slotRange.start &&
-    hour <= slotRange.end
-  )
-    return "ACTIVE";
-
-  // AFTER SLOT
-  return "MISSED";
 }
 
 function buildTooltip(items, state, slot, dateStr) {
@@ -514,34 +754,59 @@ function createPatientCell(items, slot, dateStr) {
     <div class="pill-grid-item bg-transparent"></div>
   `;
 }
+
 async function loadPatientSchedule() {
-  try {
-    const user = JSON.parse(localStorage.getItem("user"));
 
-    if (!user) {
-      console.error("No user found");
-      return;
+    try {
+
+        const user =
+            JSON.parse(
+                localStorage.getItem("user")
+            );
+
+        if (!user) {
+
+            console.error(
+                "No user found"
+            );
+
+            return;
+        }
+
+        const res =
+            await fetch(
+                `https://pilldose.onrender.com/api/schedule/${user.id}`
+            );
+
+        const data =
+            await res.json();
+
+        console.log(
+            "Patient Schedule:",
+            data
+        );
+
+        
+        // Render selected week
+        renderPatientGrid(data);
+
+        // These remain based on the complete schedule
+        updateNextDoseUI(data);
+        updateNextDoseCard(data);
+
+        updateGreeting();
+        updateProgress(data);
+
+        updateClinicalInsight(data);
+        updateAdherenceCard(data);
+
+    } catch (err) {
+
+        console.error(
+            "Error loading patient schedule:",
+            err
+        );
     }
-
-   // const res = await fetch(`http://localhost:3000/api/schedule/69e36aba7cd37f357172fafa`);
-   const res = await fetch(`https://pilldose.onrender.com/api/schedule/${user.id}`);
-    const data = await res.json();
-
-    renderPatientGrid(data);
-updateNextDoseUI(data);
-updateNextDoseCard(data);
-    // ✅ NEW
-    updateGreeting();
-    updateProgress(data);
-
-    console.log("Patient Schedule:", data);
-
-    renderPatientGrid(data);
-    updateClinicalInsight(data);
-    updateAdherenceCard(data);
-  } catch (err) {
-    console.error("Error loading patient schedule:", err);
-  }
 }
 
 function updateNextDoseCard(data) {
