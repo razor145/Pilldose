@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Patients | Pill Dose</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            colors: {
+                background: "#f7f9ff",
+                surface: "#f7f9ff",
+                primary: "#005bb2",
+                "primary-container": "#1f74d7",
+                "surface-container-low": "#f0f4fb",
+                "surface-container-lowest": "#ffffff",
+                "surface-container-high": "#e4e8ef",
+                "on-surface": "#171c21",
+                "on-surface-variant": "#414753",
+                secondary: "#006c47",
+                "secondary-container": "#7efabc",
+                outline: "#727784"
+            },
+            fontFamily: {
+                headline: ["Manrope"],
+                body: ["Inter"]
+            }
+        }
+    }
+}
+</script>
+<style>
+.material-symbols-outlined {
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24;
+}
+body {
+    font-family: 'Inter', sans-serif;
+}
+h1,
+h2,
+h3,
+.brand {
+    font-family: 'Manrope', sans-serif;
+}
+</style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- =====================================================
+     TOP NAVIGATION
+===================================================== -->
+<header
+    class="fixed top-0 w-full z-50
+           bg-white/80 backdrop-blur-xl
+           shadow-sm h-16
+           flex justify-between items-center px-8"
+>
+<div class="flex items-center gap-8">
+    <span
+        class="text-2xl font-extrabold
+               text-blue-700 tracking-tighter brand"
+    >
+        Pill Dose
+    </span>
+</div>
+<button
+    onclick="logout()"
+    class="p-2 rounded-full
+           hover:bg-slate-100
+           transition active:scale-95
+           text-slate-600"
+    title="Logout"
+>
+    <span class="material-symbols-outlined">
+        logout
+    </span>
+</button>
+</header>
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
+<aside
+    class="fixed left-0 top-16
+           h-[calc(100vh-4rem)]
+           w-64 bg-slate-50
+           flex flex-col p-4 gap-2
+           border-r border-slate-200"
+>
+<!-- CAREGIVER PROFILE -->
+<div
+    class="mb-6 px-2 py-4
+           bg-white rounded-xl shadow-sm"
+>
+    <div class="flex items-center gap-3">
+        <img
+            id="profileAvatar"
+            class="w-12 h-12 rounded-full object-cover"
+            src="https://ui-avatars.com/api/?name=Caregiver&background=005bb2&color=fff&size=128"
+        />
+        <div>
+            <p
+                id="profileName"
+                class="text-sm font-bold"
+            >
+                Caregiver
+            </p>
+            <p
+                class="text-[10px]
+                       text-on-surface-variant
+                       uppercase tracking-wider
+                       font-semibold"
+            >
+                Care Giver
+            </p>
+        </div>
+    </div>
+</div>
+<!-- NAVIGATION -->
+<nav class="flex flex-col gap-1 text-sm font-medium">
+    <!-- Weekly Schedule -->
+    <a
+        href="caregiver.html"
+        class="flex items-center gap-3
+               px-4 py-3
+               text-slate-600
+               hover:bg-slate-200/50
+               rounded-lg
+               transition"
+    >
+        <span class="material-symbols-outlined">
+            calendar_view_week
+        </span>
+        <span>
+            Weekly Schedule
+        </span>
+    </a>
+    <!-- Patients -->
+    <a
+        href="patients.html"
+        class="flex items-center gap-3
+               px-4 py-3
+               bg-white text-blue-700
+               rounded-lg shadow-sm"
+    >
+        <span class="material-symbols-outlined">
+            group
+        </span>
+        <span>
+            Patients
+        </span>
+    </a>
+    <!-- Pairing -->
+    <a
+        href="addpatient.html"
+        class="flex items-center gap-3
+               px-4 py-3
+               text-slate-600
+               hover:bg-slate-200/50
+               rounded-lg
+               transition"
+    >
+        <span class="material-symbols-outlined">
+            add_link
+        </span>
+        <span>
+            Pairing
+        </span>
+    </a>
+</nav>
+<!-- BOTTOM SIDEBAR -->
+<div
+    class="mt-auto pt-4
+           border-t border-slate-200"
+>
+    <a
+        href="#"
+        class="flex items-center gap-3
+               px-4 py-3
+               text-slate-500
+               hover:bg-slate-200/30
+               rounded-lg"
+    >
+        <span class="material-symbols-outlined">
+            help
+        </span>
+        <span class="text-xs">
+            Support
+        </span>
+    </a>
+</div>
+</aside>
+<!-- =====================================================
+     MAIN CONTENT
+===================================================== -->
+<main
+    class="ml-64 mt-16 p-8
+           min-h-[calc(100vh-4rem)]"
+>
+<!-- PAGE HEADER -->
+<div
+    class="flex flex-col
+           md:flex-row
+           md:items-end
+           md:justify-between
+           gap-4 mb-8"
+>
+    <div>
+        <p
+            class="text-xs font-bold
+                   text-on-surface-variant
+                   uppercase tracking-widest mb-2"
+        >
+            Caregiver
+        </p>
+        <h1
+            class="text-4xl font-extrabold
+                   tracking-tight"
+        >
+            My Patients
+        </h1>
+        <p
+            class="text-on-surface-variant
+                   mt-2 font-medium"
+        >
+            View all patients connected to your account.
+        </p>
+    </div>
+    <!-- ADD PATIENT -->
+    <a
+        href="addpatient.html"
+        class="px-5 py-3
+               bg-primary text-white
+               rounded-lg font-semibold
+               flex items-center gap-2
+               hover:brightness-105
+               transition shadow-md"
+    >
+        <span class="material-symbols-outlined">
+            person_add
+        </span>
+        Add Patient
+    </a>
+</div>
+<!-- =================================================
+     PATIENT COUNT
+================================================== -->
+<div
+    class="bg-white rounded-2xl
+           border shadow-sm
+           p-6 mb-8"
+>
+    <div class="flex items-center gap-4">
+        <div
+            class="w-12 h-12
+                   rounded-xl
+                   bg-blue-50
+                   text-blue-700
+                   flex items-center
+                   justify-center"
+        >
+            <span class="material-symbols-outlined">
+                group
+            </span>
+        </div>
+        <div>
+            <p
+                class="text-xs font-bold
+                       text-on-surface-variant
+                       uppercase tracking-widest"
+            >
+                Connected Patients
+            </p>
+            <p
+                id="patientCount"
+                class="text-3xl font-extrabold mt-1"
+            >
+                0
+            </p>
+        </div>
+    </div>
+</div>
+<!-- =================================================
+     LOADING
+================================================== -->
+<div
+    id="loadingState"
+    class="bg-white rounded-2xl
+           border shadow-sm
+           p-12 text-center"
+>
+    <span
+        class="material-symbols-outlined
+               text-4xl text-slate-400
+               animate-pulse"
+    >
+        progress_activity
+    </span>
+    <p
+        class="mt-3 text-sm
+               text-slate-500"
+    >
+        Loading patients...
+    </p>
+</div>
+<!-- =================================================
+     EMPTY STATE
+================================================== -->
+<div
+    id="emptyState"
+    class="hidden
+           bg-white rounded-2xl
+           border shadow-sm
+           p-12 text-center"
+>
+    <div
+        class="w-16 h-16
+               rounded-full
+               bg-blue-50
+               text-blue-600
+               flex items-center
+               justify-center
+               mx-auto"
+    >
+        <span class="material-symbols-outlined text-3xl">
+            group_off
+        </span>
+    </div>
+    <h3
+        class="text-xl font-bold mt-5"
+    >
+        No Patients Connected
+    </h3>
+    <p
+        class="text-sm
+               text-on-surface-variant
+               mt-2 max-w-md mx-auto"
+    >
+        You don't have any patients connected yet.
+        Pair with a patient to start monitoring
+        their medication.
+    </p>
+    <a
+        href="addpatient.html"
+        class="inline-flex
+               items-center gap-2
+               mt-6 px-5 py-3
+               bg-primary text-white
+               rounded-lg font-semibold"
+    >
+        <span class="material-symbols-outlined">
+            add_link
+        </span>
+        Connect Patient
+    </a>
+</div>
+<!-- =================================================
+     PATIENT GRID
+================================================== -->
+<div
+    id="patientsGrid"
+    class="hidden
+           grid grid-cols-1
+           md:grid-cols-2
+           xl:grid-cols-3
+           gap-6"
+>
+</div>
+</main>
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+<script src="../js/config.js"></script>
+<script>
+/* =====================================================
+   USER
+===================================================== */
+const user =
+    JSON.parse(
+        localStorage.getItem("user")
+    );
+/* =====================================================
+   AUTH CHECK
+===================================================== */
+if (!user) {
+    window.location.href =
+        "index.html";
+}
+/* =====================================================
+   PROFILE
+===================================================== */
+if (user) {
+    document.getElementById(
+        "profileName"
+    ).innerText =
+        user.name || "Caregiver";
+    document.getElementById(
+        "profileAvatar"
+    ).src =
+        `https://ui-avatars.com/api/?name=${
+            encodeURIComponent(
+                user.name || "Caregiver"
+            )
+        }&background=005bb2&color=fff&size=128`;
+}
+/* =====================================================
+   LOAD PATIENTS
+===================================================== */
+async function loadPatients() {
+    const loading =
+        document.getElementById(
+            "loadingState"
+        );
+    const empty =
+        document.getElementById(
+            "emptyState"
+        );
+    const grid =
+        document.getElementById(
+            "patientsGrid"
+        );
+    const count =
+        document.getElementById(
+            "patientCount"
+        );
+    try {
+        const res =
+            await fetch(
+                `https://pilldose.onrender.com/api/caregiver/${user.id}/patients`
+            );
+        if (!res.ok) {
+            throw new Error(
+                "Failed to load patients"
+            );
+        }
+        const data =
+            await res.json();
+        console.log(
+            "Patients:",
+            data
+        );
+        const patients =
+            data.patients || [];
+        /* Save patients locally */
+        localStorage.setItem(
+            "caregiverPatients",
+            JSON.stringify(patients)
+        );
+        /* Update count */
+        count.innerText =
+            patients.length;
+        /* Hide loading */
+        loading.classList.add(
+            "hidden"
+        );
+        /* No patients */
+        if (patients.length === 0) {
+            empty.classList.remove(
+                "hidden"
+            );
+            grid.classList.add(
+                "hidden"
+            );
+            return;
+        }
+        /* Show grid */
+        grid.classList.remove(
+            "hidden"
+        );
+        grid.innerHTML = "";
+        patients.forEach(
+            patient => {
+                grid.innerHTML +=
+                    createPatientCard(
+                        patient
+                    );
+            }
+        );
+    } catch (err) {
+        console.error(
+            "Error loading patients:",
+            err
+        );
+        loading.classList.add(
+            "hidden"
+        );
+        grid.classList.remove(
+            "hidden"
+        );
+        grid.innerHTML = `
+            <div
+                class="col-span-full
+                       bg-white rounded-2xl
+                       border border-red-200
+                       p-8 text-center"
+            >
+                <span
+                    class="material-symbols-outlined
+                           text-4xl text-red-500"
+                >
+                    error
+                </span>
+                <h3
+                    class="font-bold
+                           text-lg mt-3"
+                >
+                    Unable to load patients
+                </h3>
+                <p
+                    class="text-sm
+                           text-slate-500 mt-2"
+                >
+                    Please check your connection
+                    and try again.
+                </p>
+                <button
+                    onclick="loadPatients()"
+                    class="mt-5 px-5 py-2
+                           bg-primary text-white
+                           rounded-lg
+                           font-semibold"
+                >
+                    Try Again
+                </button>
+            </div>
+        `;
+    }
+}
+/* =====================================================
+   CREATE PATIENT CARD
+===================================================== */
+function createPatientCard(
+    patient
+) {
+    const name =
+        patient.name ||
+        "Unknown Patient";
+    const email =
+        patient.email ||
+        "No email available";
+    const avatar =
+        `https://ui-avatars.com/api/?name=${
+            encodeURIComponent(name)
+        }&background=1f74d7&color=fff&size=128`;
+    return `
+        <div
+            class="bg-white
+                   rounded-2xl
+                   border
+                   shadow-sm
+                   p-6
+                   hover:shadow-md
+                   transition"
+        >
+            <!-- HEADER -->
+            <div
+                class="flex
+                       items-start
+                       justify-between"
+            >
+                <div
+                    class="flex
+                           items-center
+                           gap-4"
+                >
+                    <img
+                        src="${avatar}"
+                        class="w-14 h-14
+                               rounded-xl
+                               object-cover"
+                    />
+                    <div>
+                        <h3
+                            class="font-bold
+                                   text-lg"
+                        >
+                            ${escapeHtml(name)}
+                        </h3>
+                        <p
+                            class="text-xs
+                                   text-on-surface-variant
+                                   mt-1"
+                        >
+                            ${escapeHtml(email)}
+                        </p>
+                    </div>
+                </div>
+                <!-- CONNECTED STATUS -->
+                <div
+                    class="flex items-center
+                           gap-1.5
+                           text-xs
+                           font-semibold
+                           text-green-600"
+                >
+                    <span
+                        class="w-2.5 h-2.5
+                               rounded-full
+                               bg-green-500"
+                    ></span>
+                    Connected
+                </div>
+            </div>
+            <!-- DIVIDER -->
+            <div
+                class="border-t
+                       border-slate-100
+                       mt-6 pt-5"
+            >
+                <div
+                    class="flex
+                           items-center
+                           gap-2
+                           text-sm
+                           text-on-surface-variant"
+                >
+                    <span
+                        class="material-symbols-outlined
+                               text-lg"
+                    >
+                        person
+                    </span>
+                    Patient
+                </div>
+            </div>
+            <!-- VIEW SCHEDULE -->
+            <button
+                onclick="openPatient('${patient._id}')"
+                class="w-full
+                       mt-5
+                       bg-primary
+                       text-white
+                       py-3
+                       rounded-xl
+                       font-semibold
+                       flex items-center
+                       justify-center
+                       gap-2
+                       hover:brightness-105
+                       transition"
+            >
+                <span
+                    class="material-symbols-outlined"
+                >
+                    calendar_view_week
+                </span>
+                View Medication Schedule
+            </button>
+        </div>
+    `;
+}
+/* =====================================================
+   OPEN PATIENT
+===================================================== */
+function openPatient(
+    patientId
+) {
+    const patients =
+        JSON.parse(
+            localStorage.getItem(
+                "caregiverPatients"
+            ) || "[]"
+        );
+    const patient =
+        patients.find(
+            p => p._id === patientId
+        );
+    if (!patient) {
+        alert(
+            "Patient not found"
+        );
+        return;
+    }
+    /*
+     * This is the same object structure
+     * already expected by caregiver.html.
+     */
+    localStorage.setItem(
+        "selectedPatient",
+        JSON.stringify(patient)
+    );
+    /*
+     * Open existing caregiver
+     * medication scheduler.
+     */
+    window.location.href =
+        "caregiver.html";
+}
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
+function escapeHtml(
+    value
+) {
+    const div =
+        document.createElement(
+            "div"
+        );
+    div.textContent =
+        value;
+    return div.innerHTML;
+}
+/* =====================================================
+   LOGOUT
+===================================================== */
+function logout() {
+    const confirmed =
+        confirm(
+            "Are you sure you want to logout?"
+        );
+    if (!confirmed)
+        return;
+    localStorage.removeItem(
+        "user"
+    );
+    localStorage.removeItem(
+        "selectedPatient"
+    );
+    localStorage.removeItem(
+        "caregiverPatients"
+    );
+    localStorage.removeItem(
+        "token"
+    );
+    localStorage.removeItem(
+        "authToken"
+    );
+    window.location.href =
+        "index.html";
+}
+/* =====================================================
+   INIT
+===================================================== */
+loadPatients();
+</script>
+</body>
+</html>
