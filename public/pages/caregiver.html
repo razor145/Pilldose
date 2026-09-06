@@ -383,44 +383,87 @@ async function publishSchedule() {
   }
 }
 function buildSchedulePayload() {
-    const payload = [];
 
-    const weekStart = getStartOfWeek(weekOffset);
+  const selectedPatient =
+    JSON.parse(
+      localStorage.getItem("selectedPatient")
+    );
 
-    Object.keys(schedule).forEach(key => {
-        const items = schedule[key];
+  if (!selectedPatient) {
+    alert("No patient selected");
+    return [];
+  }
 
-        if (!items || items.length === 0) return;
+  const payload = [];
 
-        const [dayOffset, timeSlot] = key.split("-");
+  // Start of currently displayed week
+  const weekStart =
+    getStartOfWeek(weekOffset);
 
-        const date = new Date(weekStart);
-        date.setDate(date.getDate() + parseInt(dayOffset, 10));
+  Object.keys(schedule).forEach(key => {
 
-        const formattedDate =
-            date.getFullYear() + "-" +
-            String(date.getMonth() + 1).padStart(2, "0") + "-" +
-            String(date.getDate()).padStart(2, "0");
+    const [dayOffset, timeSlot] =
+      key.split("-");
 
-        /*
-         * IMPORTANT:
-         * Every medicine gets its own payload entry,
-         * but they all share the SAME time.
-         */
-        items.forEach(item => {
-            payload.push({
-                patientId: selectedPatient._id,
-                date: formattedDate,
-                timeSlot: timeSlot,
-                actualTime: item.time,
-                medicine: item.medicine,
-                status: item.status || "PENDING"
-            });
-        });
+    const items =
+      schedule[key];
+
+    const date =
+      new Date(weekStart);
+
+    date.setDate(
+      weekStart.getDate() +
+      parseInt(dayOffset)
+    );
+
+    /*
+     * Format as YYYY-MM-DD
+     */
+    const year =
+      date.getFullYear();
+
+    const month =
+      String(date.getMonth() + 1)
+        .padStart(2, "0");
+
+    const day =
+      String(date.getDate())
+        .padStart(2, "0");
+
+    const formattedDate =
+      `${year}-${month}-${day}`;
+
+    items.forEach(item => {
+
+      payload.push({
+
+        patientId:
+          selectedPatient._id,
+
+        date:
+          formattedDate,
+
+        timeSlot:
+          timeSlot,
+
+        actualTime:
+          item.time,
+
+        medicine:
+          item.medicine,
+
+        status:
+          item.status
+
+      });
+
     });
 
-    return payload;
+  });
+
+  return payload;
 }
+
   loadPatients();
 
 async function loadPatients() {
