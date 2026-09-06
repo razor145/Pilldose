@@ -835,45 +835,66 @@ function editMedicine(key, index) {
   renderSlot(key);
 }
 // ✅ Save Medicine
+// ✅ Save Medicine - ONLY ONE MEDICATION PER COMPARTMENT
 function saveMedicine() {
-  const medicine = document.getElementById("medicineInput").value.trim();
-  const time = document.getElementById("timeInput").value;
-  const timeInput = document.getElementById("timeInput");
 
-  if (!medicine || !time) return;
+  const medicine =
+    document.getElementById("medicineInput").value.trim();
 
-  // ❌ Prevent invalid manual input
-  if (time < timeInput.min || time > timeInput.max) {
-    alert("Please select a valid time for this slot");
+  const time =
+    document.getElementById("timeInput").value;
+
+  const timeInput =
+    document.getElementById("timeInput");
+
+  if (!medicine || !time) {
+    alert("Please enter medicine and time");
     return;
   }
 
-  if (!schedule[selectedKey]) {
-    schedule[selectedKey] = [];
+  // ❌ Prevent invalid time
+  if (time < timeInput.min || time > timeInput.max) {
+    alert("Please select a valid time for this compartment");
+    return;
   }
 
-const existingIndex = schedule[selectedKey].findIndex(
-  item => item.time === time
-);
+  // ✅ Check if compartment already has a medication
+  if (
+    schedule[selectedKey] &&
+    schedule[selectedKey].length > 0
+  ) {
 
-if (existingIndex !== -1) {
-  // 🔁 UPDATE existing
-  schedule[selectedKey][existingIndex] = {
-    ...schedule[selectedKey][existingIndex],
-    medicine,
-    status: "PENDING"
-  };
-} else {
-  // ➕ CREATE new
-  schedule[selectedKey].push({
-    medicine,
-    time,
-    status: "PENDING"
-  });
-}
+    const existingMedicine =
+      schedule[selectedKey][0];
+
+    // Update existing medication
+    schedule[selectedKey][0] = {
+      ...existingMedicine,
+      medicine: medicine,
+      time: time,
+      status: "PENDING"
+    };
+
+  } else {
+
+    // Create new medication
+    schedule[selectedKey] = [
+      {
+        medicine: medicine,
+        time: time,
+        status: "PENDING"
+      }
+    ];
+
+  }
 
   renderSlot(selectedKey);
+
   closeModal();
+
+  // Clear inputs
+  document.getElementById("medicineInput").value = "";
+  document.getElementById("timeInput").value = "";
 }
 
 // ✅ Render Slot
