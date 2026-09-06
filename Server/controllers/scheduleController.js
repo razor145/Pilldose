@@ -10,86 +10,23 @@ exports.createSchedule = async (req, res) => {
 
     console.log("📥 Incoming schedules:", schedules);
 
-    const results = [];
-
-    /*
-     * ============================================================
-     * STEP 1
-     * Validate that each patient/date/timeSlot has only ONE time.
-     * ============================================================
-     */
-
-    const slotTimes = {};
+    let results = [];
 
     for (const item of schedules) {
 
-      const slotKey =
-        `${item.patientId}_${item.date}_${item.timeSlot}`;
-
-      if (!slotTimes[slotKey]) {
-        slotTimes[slotKey] = item.actualTime;
-      }
-
-      if (slotTimes[slotKey] !== item.actualTime) {
-
-        return res.status(400).json({
-          message:
-            `Multiple times are not allowed for ${item.timeSlot} ` +
-            `on ${item.date}. All medicines in this slot must use ` +
-            `${slotTimes[slotKey]}.`
-        });
-      }
-    }
-
-
-    /*
-     * ============================================================
-     * STEP 2
-     * Check existing database records.
-     *
-     * If this slot already has a time, don't allow another time.
-     * ============================================================
-     */
-
-    for (const item of schedules) {
-
-      const existingSlot = await Schedule.findOne({
-        patientId: item.patientId,
-        date: item.date,
-        timeSlot: item.timeSlot
-      });
-
-      if (
-        existingSlot &&
-        existingSlot.actualTime !== item.actualTime
-      ) {
-
-        return res.status(400).json({
-          message:
-            `${item.timeSlot} on ${item.date} is already scheduled ` +
-            `for ${existingSlot.actualTime}. ` +
-            `All medicines in this slot must use the same time.`
-        });
-      }
-    }
-
-
-    /*
-     * ============================================================
-     * STEP 3
-     * Save each medicine as a separate document.
-     *
-     * Multiple medicines are allowed in the same slot.
-     * ============================================================
-     */
-
-    for (const item of schedules) {
-
-      const medicineName = item.medicine.trim();
-
-      if (!medicineName) {
-        continue;
-      }
+      /*
+       * Each MEDICINE is a separate database record.
+       *
+       * Same:
+       *   patientId
+       *   date
+       *   timeSlot
+       *   actualTime
+       *
+       * is allowed.
+       *
+       * Medicine makes the record unique.
+       */
 
       const updated = await Schedule.findOneAndUpdate(
         {
@@ -97,13 +34,13 @@ exports.createSchedule = async (req, res) => {
           date: item.date,
           timeSlot: item.timeSlot,
           actualTime: item.actualTime,
-          medicine: medicineName
+          medicine: item.medicine
         },
         {
           $set: {
-            medicine: medicineName,
-            actualTime: item.actualTime,
-            status: item.status || "PENDING"
+            medicine: item.medicine,
+            status: item.status || "PENDING",
+            actualTime: item.actualTime
           }
         },
         {
@@ -115,12 +52,7 @@ exports.createSchedule = async (req, res) => {
       results.push(updated);
     }
 
-
-    console.log(
-      "✅ Saved schedules:",
-      results.length
-    );
-
+    console.log("✅ Upserted schedules:", results.length);
 
     res.json({
       message: "Schedules created/updated successfully",
@@ -130,10 +62,7 @@ exports.createSchedule = async (req, res) => {
 
   } catch (err) {
 
-    console.error(
-      "❌ ERROR saving schedules:",
-      err
-    );
+    console.error("❌ ERROR saving schedules:", err);
 
     res.status(500).json({
       message: "Server error",
