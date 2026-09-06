@@ -383,87 +383,44 @@ async function publishSchedule() {
   }
 }
 function buildSchedulePayload() {
+    const payload = [];
 
-  const selectedPatient =
-    JSON.parse(
-      localStorage.getItem("selectedPatient")
-    );
+    const weekStart = getStartOfWeek(weekOffset);
 
-  if (!selectedPatient) {
-    alert("No patient selected");
-    return [];
-  }
+    Object.keys(schedule).forEach(key => {
+        const items = schedule[key];
 
-  const payload = [];
+        if (!items || items.length === 0) return;
 
-  // Start of currently displayed week
-  const weekStart =
-    getStartOfWeek(weekOffset);
+        const [dayOffset, timeSlot] = key.split("-");
 
-  Object.keys(schedule).forEach(key => {
+        const date = new Date(weekStart);
+        date.setDate(date.getDate() + parseInt(dayOffset, 10));
 
-    const [dayOffset, timeSlot] =
-      key.split("-");
+        const formattedDate =
+            date.getFullYear() + "-" +
+            String(date.getMonth() + 1).padStart(2, "0") + "-" +
+            String(date.getDate()).padStart(2, "0");
 
-    const items =
-      schedule[key];
-
-    const date =
-      new Date(weekStart);
-
-    date.setDate(
-      weekStart.getDate() +
-      parseInt(dayOffset)
-    );
-
-    /*
-     * Format as YYYY-MM-DD
-     */
-    const year =
-      date.getFullYear();
-
-    const month =
-      String(date.getMonth() + 1)
-        .padStart(2, "0");
-
-    const day =
-      String(date.getDate())
-        .padStart(2, "0");
-
-    const formattedDate =
-      `${year}-${month}-${day}`;
-
-    items.forEach(item => {
-
-      payload.push({
-
-        patientId:
-          selectedPatient._id,
-
-        date:
-          formattedDate,
-
-        timeSlot:
-          timeSlot,
-
-        actualTime:
-          item.time,
-
-        medicine:
-          item.medicine,
-
-        status:
-          item.status
-
-      });
-
+        /*
+         * IMPORTANT:
+         * Every medicine gets its own payload entry,
+         * but they all share the SAME time.
+         */
+        items.forEach(item => {
+            payload.push({
+                patientId: selectedPatient._id,
+                date: formattedDate,
+                timeSlot: timeSlot,
+                actualTime: item.time,
+                medicine: item.medicine,
+                status: item.status || "PENDING"
+            });
+        });
     });
 
-  });
-
-  return payload;
+    return payload;
 }
-
   loadPatients();
 
 async function loadPatients() {
