@@ -1,11 +1,37 @@
+const Schedule = require("../models/Schedule");
+
+exports.markTaken = async (req, res) => {
+
+    try {
+
+        const schedule =
+            await Schedule.findByIdAndUpdate(
+                req.params.id,
+                {
+                    status: "TAKEN"
+                },
+                {
+                    new: true
+                }
+            );
+
+        res.json(schedule);
+
+    } catch (err) {
+
+        res.status(500).json({
+            message: err.message
+        });
+    }
+
+};
+
 exports.createSchedule = async (req, res) => {
   try {
     const { schedules } = req.body;
 
     if (!schedules || schedules.length === 0) {
-      return res.status(400).json({
-        message: "No schedules provided"
-      });
+      return res.status(400).json({ message: "No schedules provided" });
     }
 
     console.log("📥 Incoming schedules:", schedules);
@@ -13,34 +39,17 @@ exports.createSchedule = async (req, res) => {
     let results = [];
 
     for (const item of schedules) {
-
-      /*
-       * Each MEDICINE is a separate database record.
-       *
-       * Same:
-       *   patientId
-       *   date
-       *   timeSlot
-       *   actualTime
-       *
-       * is allowed.
-       *
-       * Medicine makes the record unique.
-       */
-
       const updated = await Schedule.findOneAndUpdate(
         {
           patientId: item.patientId,
           date: item.date,
           timeSlot: item.timeSlot,
-          actualTime: item.actualTime,
-          medicine: item.medicine
+          actualTime: item.actualTime // 🔥 key uniqueness
         },
         {
           $set: {
             medicine: item.medicine,
-            status: item.status || "PENDING",
-            actualTime: item.actualTime
+            status: item.status
           }
         },
         {
@@ -56,17 +65,39 @@ exports.createSchedule = async (req, res) => {
 
     res.json({
       message: "Schedules created/updated successfully",
-      count: results.length,
-      schedules: results
+      count: results.length
     });
 
   } catch (err) {
-
     console.error("❌ ERROR saving schedules:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-    res.status(500).json({
-      message: "Server error",
-      error: err.message
-    });
+exports.getSchedulesForPatient = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    const schedules = await Schedule.find({ patientId });
+
+    res.json(schedules);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.deleteSchedule = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await Schedule.findByIdAndDelete(id);
+
+    res.json({ message: "Deleted successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Delete failed" });
   }
 };
