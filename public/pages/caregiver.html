@@ -784,12 +784,29 @@ html += `
 
 // ✅ Open Modal
 function openModal(element, key) {
-  selectedElement = element;
-  selectedKey = key;
 
   const [, timeSlot] = key.split("-");
 
-  const timeInput = document.getElementById("timeInput");
+  // Get the actual date represented by this grid cell
+  const dayOffset = parseInt(key.split("-")[0]);
+  const selectedDate = getDateForGridDay(dayOffset);
+
+  const now = new Date();
+
+  // ❌ Entire day has already passed
+  if (selectedDate.toDateString() !== now.toDateString()) {
+
+    if (selectedDate < now) {
+      alert("You cannot add medication to a previous date.");
+      return;
+    }
+  }
+
+  selectedElement = element;
+  selectedKey = key;
+
+  const timeInput =
+    document.getElementById("timeInput");
 
   const slotConfig = {
     MORNING: {
@@ -811,14 +828,38 @@ function openModal(element, key) {
 
   const config = slotConfig[timeSlot];
 
-  // ✅ Restrict selectable time
   timeInput.min = config.min;
   timeInput.max = config.max;
-
-  // ✅ Set default time
   timeInput.value = config.default;
 
-  document.getElementById("medicineModal").classList.remove("hidden");
+  // If this is TODAY, don't allow times that have already passed
+  if (selectedDate.toDateString() === now.toDateString()) {
+
+    const currentTime =
+      now.getHours().toString().padStart(2, "0") +
+      ":" +
+      now.getMinutes().toString().padStart(2, "0");
+
+    // If the whole compartment time range has passed
+    if (currentTime > config.max) {
+      alert(`${timeSlot} medication time has already passed.`);
+      return;
+    }
+
+    // Make minimum time the current time
+    if (currentTime > config.min) {
+      timeInput.min = currentTime;
+    }
+
+    // If default time has already passed, use current time
+    if (timeInput.value < timeInput.min) {
+      timeInput.value = timeInput.min;
+    }
+  }
+
+  document
+    .getElementById("medicineModal")
+    .classList.remove("hidden");
 }
 
 // ✅ Close Modal
@@ -852,13 +893,44 @@ function saveMedicine() {
     return;
   }
 
-  // ❌ Prevent invalid time
+  // Existing slot validation
   if (time < timeInput.min || time > timeInput.max) {
     alert("Please select a valid time for this compartment");
     return;
   }
 
-  // ✅ Check if compartment already has a medication
+  // Get actual date
+  const dayOffset =
+    parseInt(selectedKey.split("-")[0]);
+
+  const selectedDate =
+    getDateForGridDay(dayOffset);
+
+  const now = new Date();
+
+  // Create selected date + medication time
+  const medicationDateTime =
+    new Date(selectedDate);
+
+  const [hours, minutes] =
+    time.split(":").map(Number);
+
+  medicationDateTime.setHours(
+    hours,
+    minutes,
+    0,
+    0
+  );
+
+  // ❌ Medication time has already passed
+  if (medicationDateTime <= now) {
+    alert(
+      "This medication time has already passed. Please select a future time."
+    );
+    return;
+  }
+
+  // ✅ Only ONE medication per compartment
   if (
     schedule[selectedKey] &&
     schedule[selectedKey].length > 0
@@ -867,7 +939,6 @@ function saveMedicine() {
     const existingMedicine =
       schedule[selectedKey][0];
 
-    // Update existing medication
     schedule[selectedKey][0] = {
       ...existingMedicine,
       medicine: medicine,
@@ -877,7 +948,6 @@ function saveMedicine() {
 
   } else {
 
-    // Create new medication
     schedule[selectedKey] = [
       {
         medicine: medicine,
@@ -885,14 +955,12 @@ function saveMedicine() {
         status: "PENDING"
       }
     ];
-
   }
 
   renderSlot(selectedKey);
 
   closeModal();
 
-  // Clear inputs
   document.getElementById("medicineInput").value = "";
   document.getElementById("timeInput").value = "";
 }
