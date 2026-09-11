@@ -27,77 +27,236 @@ exports.markTaken = async (req, res) => {
 };
 
 exports.createSchedule = async (req, res) => {
-  try {
-    const { schedules } = req.body;
 
-    if (!schedules || schedules.length === 0) {
-      return res.status(400).json({ message: "No schedules provided" });
+  try {
+
+    const { schedules } =
+      req.body;
+
+
+    if (
+      !schedules ||
+      schedules.length === 0
+    ) {
+
+      return res.status(400).json({
+        message:
+          "No schedules provided"
+      });
     }
 
-    console.log("📥 Incoming schedules:", schedules);
 
-    let results = [];
+    console.log(
+      "📥 Incoming schedules:",
+      schedules
+    );
+
+
+    /*
+     * ============================================================
+     * STEP 1
+     * Make sure one compartment cannot have
+     * multiple different times.
+     * ============================================================
+     */
+
+    const slotTimes = {};
+
 
     for (const item of schedules) {
-      const updated = await Schedule.findOneAndUpdate(
-        {
-          patientId: item.patientId,
-          date: item.date,
-          timeSlot: item.timeSlot,
-          actualTime: item.actualTime // 🔥 key uniqueness
-        },
-        {
-          $set: {
-            medicine: item.medicine,
-            status: item.status
-          }
-        },
-        {
-          upsert: true,
-          new: true
-        }
-      );
 
-      results.push(updated);
+      const slotKey =
+        `${item.patientId}_${item.date}_${item.timeSlot}`;
+
+
+      if (!slotTimes[slotKey]) {
+
+        slotTimes[slotKey] =
+          item.actualTime;
+
+      }
+
+
+      if (
+        slotTimes[slotKey] !==
+        item.actualTime
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            `Multiple times are not allowed for ` +
+            `${item.timeSlot} on ${item.date}. ` +
+            `All medications in this compartment ` +
+            `must use ${slotTimes[slotKey]}.`
+
+        });
+      }
     }
 
-    console.log("✅ Upserted schedules:", results.length);
+
+    /*
+     * ============================================================
+     * STEP 2
+     * Check existing database records.
+     *
+     * This prevents changing an existing compartment's
+     * time by sending a new time.
+     * ============================================================
+     */
+
+    for (const item of schedules) {
+
+      const existingSlot =
+        await Schedule.findOne({
+
+          patientId:
+            item.patientId,
+
+          date:
+            item.date,
+
+          timeSlot:
+            item.timeSlot
+
+        });
+
+
+      if (
+        existingSlot &&
+        existingSlot.actualTime !==
+          item.actualTime
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            `${item.timeSlot} on ${item.date} ` +
+            `is already scheduled for ` +
+            `${existingSlot.actualTime}. ` +
+            `All medications in this compartment ` +
+            `must use the same time.`
+
+        });
+      }
+    }
+
+
+    /*
+     * ============================================================
+     * STEP 3
+     * Save EACH medication separately.
+     * ============================================================
+     */
+
+    const results = [];
+
+
+    for (const item of schedules) {
+
+      const medicineName =
+        item.medicine.trim();
+
+
+      if (!medicineName) {
+        continue;
+      }
+
+
+      const updated =
+        await Schedule.findOneAndUpdate(
+
+          {
+
+            patientId:
+              item.patientId,
+
+            date:
+              item.date,
+
+            timeSlot:
+              item.timeSlot,
+
+            actualTime:
+              item.actualTime,
+
+            medicine:
+              medicineName
+
+          },
+
+          {
+
+            $set: {
+
+              medicine:
+                medicineName,
+
+              actualTime:
+                item.actualTime,
+
+              status:
+                item.status ||
+                "PENDING"
+
+            }
+
+          },
+
+          {
+
+            upsert: true,
+
+            new: true
+
+          }
+
+        );
+
+
+      results.push(updated);
+
+    }
+
+
+    console.log(
+      "✅ Saved medications:",
+      results.length
+    );
+
 
     res.json({
-      message: "Schedules created/updated successfully",
-      count: results.length
+
+      message:
+        "Schedules created/updated successfully",
+
+      count:
+        results.length,
+
+      schedules:
+        results
+
     });
 
-  } catch (err) {
-    console.error("❌ ERROR saving schedules:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-exports.getSchedulesForPatient = async (req, res) => {
-  try {
-    const { patientId } = req.params;
-
-    const schedules = await Schedule.find({ patientId });
-
-    res.json(schedules);
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+
+    console.error(
+      "❌ ERROR saving schedules:",
+      err
+    );
+
+
+    res.status(500).json({
+
+      message:
+        "Server error",
+
+      error:
+        err.message
+
+    });
+
   }
-};
 
-exports.deleteSchedule = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    await Schedule.findByIdAndDelete(id);
-
-    res.json({ message: "Deleted successfully" });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Delete failed" });
-  }
 };
