@@ -785,86 +785,256 @@ html += `
 // ✅ Open Modal
 function openModal(element, key) {
 
-  const [, timeSlot] = key.split("-");
+  const [, timeSlot] =
+    key.split("-");
 
-  // Get the actual date represented by this grid cell
-  const dayOffset = parseInt(key.split("-")[0]);
-  const selectedDate = getDateForGridDay(dayOffset);
+  const dayOffset =
+    parseInt(
+      key.split("-")[0],
+      10
+    );
 
-  const now = new Date();
+  const selectedDate =
+    getDateForGridDay(dayOffset);
 
-  // ❌ Entire day has already passed
-  if (selectedDate.toDateString() !== now.toDateString()) {
+  const now =
+    new Date();
 
-    if (selectedDate < now) {
-      alert("You cannot add medication to a previous date.");
-      return;
-    }
+
+  /*
+   * Normalize dates to midnight.
+   */
+  const selectedDateOnly =
+    new Date(selectedDate);
+
+  selectedDateOnly.setHours(
+    0, 0, 0, 0
+  );
+
+  const todayOnly =
+    new Date();
+
+  todayOnly.setHours(
+    0, 0, 0, 0
+  );
+
+
+  /*
+   * Previous date = read-only.
+   */
+  if (
+    selectedDateOnly <
+    todayOnly
+  ) {
+
+    alert(
+      "You cannot add medication to a previous date."
+    );
+
+    return;
   }
 
-  selectedElement = element;
-  selectedKey = key;
+
+  selectedElement =
+    element;
+
+  selectedKey =
+    key;
+
 
   const timeInput =
-    document.getElementById("timeInput");
+    document.getElementById(
+      "timeInput"
+    );
+
 
   const slotConfig = {
+
     MORNING: {
       min: "05:00",
       max: "11:59",
       default: "08:00"
     },
+
     MIDDAY: {
       min: "12:00",
       max: "16:59",
       default: "13:00"
     },
+
     EVENING: {
       min: "17:00",
       max: "23:00",
       default: "20:00"
     }
+
   };
 
-  const config = slotConfig[timeSlot];
 
-  timeInput.min = config.min;
-  timeInput.max = config.max;
-  timeInput.value = config.default;
+  const config =
+    slotConfig[timeSlot];
 
-  // If this is TODAY, don't allow times that have already passed
-  if (selectedDate.toDateString() === now.toDateString()) {
 
-    const currentTime =
-      now.getHours().toString().padStart(2, "0") +
-      ":" +
-      now.getMinutes().toString().padStart(2, "0");
+  timeInput.min =
+    config.min;
 
-    // If the whole compartment time range has passed
-    if (currentTime > config.max) {
-      alert(`${timeSlot} medication time has already passed.`);
+  timeInput.max =
+    config.max;
+
+
+  /*
+   * ============================================================
+   * EXISTING MEDICINES
+   * ============================================================
+   */
+
+  const existingItems =
+    schedule[key] || [];
+
+
+  if (existingItems.length > 0) {
+
+    /*
+     * Use the compartment's existing time.
+     */
+    const existingTime =
+      existingItems[0].time;
+
+    timeInput.value =
+      existingTime;
+
+    /*
+     * Lock time because the compartment
+     * already has a scheduled time.
+     */
+    timeInput.disabled =
+      true;
+
+
+    /*
+     * Check whether existing time has passed.
+     */
+    const existingDateTime =
+      new Date(selectedDate);
+
+    const [hours, minutes] =
+      existingTime
+        .split(":")
+        .map(Number);
+
+    existingDateTime.setHours(
+      hours,
+      minutes,
+      0,
+      0
+    );
+
+
+    if (
+      existingDateTime <= now
+    ) {
+
+      alert(
+        `This ${timeSlot} compartment at ${existingTime} has already passed.`
+      );
+
       return;
     }
 
-    // Make minimum time the current time
-    if (currentTime > config.min) {
-      timeInput.min = currentTime;
-    }
+  } else {
 
-    // If default time has already passed, use current time
-    if (timeInput.value < timeInput.min) {
-      timeInput.value = timeInput.min;
+    /*
+     * Empty compartment.
+     */
+    timeInput.disabled =
+      false;
+
+    timeInput.value =
+      config.default;
+
+
+    /*
+     * Today:
+     * don't allow selecting a time that has passed.
+     */
+    if (
+      selectedDateOnly.getTime() ===
+      todayOnly.getTime()
+    ) {
+
+      const currentTime =
+        now.getHours()
+          .toString()
+          .padStart(2, "0") +
+        ":" +
+        now.getMinutes()
+          .toString()
+          .padStart(2, "0");
+
+
+      if (
+        currentTime >
+        config.max
+      ) {
+
+        alert(
+          `${timeSlot} medication time has already passed.`
+        );
+
+        return;
+      }
+
+
+      if (
+        currentTime >
+        config.min
+      ) {
+
+        timeInput.min =
+          currentTime;
+      }
+
+
+      if (
+        timeInput.value <
+        timeInput.min
+      ) {
+
+        timeInput.value =
+          timeInput.min;
+      }
     }
   }
 
-  document
-    .getElementById("medicineModal")
-    .classList.remove("hidden");
-}
 
+  document
+    .getElementById(
+      "medicineModal"
+    )
+    .classList.remove(
+      "hidden"
+    );
+}
 // ✅ Close Modal
 function closeModal() {
-  document.getElementById("medicineModal").classList.add("hidden");
+
+  document
+    .getElementById("medicineModal")
+    .classList.add("hidden");
+
+  /*
+   * Re-enable time input for the next
+   * empty compartment.
+   */
+  document
+    .getElementById("timeInput")
+    .disabled = false;
+
+  selectedKey =
+    null;
+
+  selectedElement =
+    null;
 }
 function editMedicine(key, index) {
   const newName = prompt("Edit medicine");
@@ -879,41 +1049,130 @@ function editMedicine(key, index) {
 // ✅ Save Medicine - ONLY ONE MEDICATION PER COMPARTMENT
 function saveMedicine() {
 
-  const medicine =
-    document.getElementById("medicineInput").value.trim();
-
-  const time =
-    document.getElementById("timeInput").value;
+  const medicineInput =
+    document.getElementById("medicineInput");
 
   const timeInput =
     document.getElementById("timeInput");
 
-  if (!medicine || !time) {
+  const medicine =
+    medicineInput.value.trim();
+
+  const selectedTime =
+    timeInput.value;
+
+  if (!medicine || !selectedTime) {
     alert("Please enter medicine and time");
     return;
   }
 
-  // Existing slot validation
-  if (time < timeInput.min || time > timeInput.max) {
-    alert("Please select a valid time for this compartment");
+  if (!selectedKey) {
+    alert("No compartment selected");
     return;
   }
 
-  // Get actual date
+  const [, timeSlot] =
+    selectedKey.split("-");
+
+  /*
+   * Get medicines already inside this compartment.
+   */
+  const existingItems =
+    schedule[selectedKey] || [];
+
+
+  /*
+   * ============================================================
+   * ONE TIME PER COMPARTMENT
+   * ============================================================
+   *
+   * If the compartment already contains medicine,
+   * its existing time becomes the time for all medicines.
+   */
+
+  let slotTime = selectedTime;
+
+  if (existingItems.length > 0) {
+
+    slotTime =
+      existingItems[0].time;
+
+    /*
+     * Do not allow a different time.
+     */
+    if (selectedTime !== slotTime) {
+
+      alert(
+        `This ${timeSlot} compartment is already scheduled for ${slotTime}.\n\n` +
+        `All medications in this compartment must use the same time.`
+      );
+
+      timeInput.value = slotTime;
+
+      return;
+    }
+  }
+
+
+  /*
+   * Validate time against compartment range.
+   */
+  if (
+    slotTime < timeInput.min ||
+    slotTime > timeInput.max
+  ) {
+
+    alert(
+      "Please select a valid time for this compartment"
+    );
+
+    return;
+  }
+
+
+  /*
+   * ============================================================
+   * PREVENT DUPLICATE MEDICINE
+   * ============================================================
+   */
+
+  const duplicate =
+    existingItems.some(
+      item =>
+        item.medicine.trim().toLowerCase() ===
+        medicine.toLowerCase()
+    );
+
+  if (duplicate) {
+
+    alert(
+      `${medicine} is already added to this compartment.`
+    );
+
+    return;
+  }
+
+
+  /*
+   * ============================================================
+   * CHECK PAST TIME
+   * ============================================================
+   */
+
   const dayOffset =
-    parseInt(selectedKey.split("-")[0]);
+    parseInt(
+      selectedKey.split("-")[0],
+      10
+    );
 
   const selectedDate =
     getDateForGridDay(dayOffset);
 
-  const now = new Date();
-
-  // Create selected date + medication time
   const medicationDateTime =
     new Date(selectedDate);
 
   const [hours, minutes] =
-    time.split(":").map(Number);
+    slotTime.split(":").map(Number);
 
   medicationDateTime.setHours(
     hours,
@@ -922,49 +1181,63 @@ function saveMedicine() {
     0
   );
 
-  // ❌ Medication time has already passed
-  if (medicationDateTime <= now) {
+  if (medicationDateTime <= new Date()) {
+
     alert(
-      "This medication time has already passed. Please select a future time."
+      "This medication time has already passed. " +
+      "Please select a future time."
     );
+
     return;
   }
 
-  // ✅ Only ONE medication per compartment
-  if (
-    schedule[selectedKey] &&
-    schedule[selectedKey].length > 0
-  ) {
 
-    const existingMedicine =
-      schedule[selectedKey][0];
+  /*
+   * ============================================================
+   * ADD MEDICINE
+   * ============================================================
+   *
+   * IMPORTANT:
+   * We PUSH a new medicine instead of replacing [0].
+   */
 
-    schedule[selectedKey][0] = {
-      ...existingMedicine,
-      medicine: medicine,
-      time: time,
-      status: "PENDING"
-    };
-
-  } else {
-
-    schedule[selectedKey] = [
-      {
-        medicine: medicine,
-        time: time,
-        status: "PENDING"
-      }
-    ];
+  if (!schedule[selectedKey]) {
+    schedule[selectedKey] = [];
   }
 
+  schedule[selectedKey].push({
+
+    medicine: medicine,
+
+    /*
+     * Every medicine in this compartment
+     * uses the SAME time.
+     */
+    time: slotTime,
+
+    status: "PENDING"
+
+  });
+
+
+  /*
+   * Re-render compartment.
+   */
   renderSlot(selectedKey);
 
+
+  /*
+   * Close modal.
+   */
   closeModal();
 
-  document.getElementById("medicineInput").value = "";
-  document.getElementById("timeInput").value = "";
-}
 
+  /*
+   * Clear fields.
+   */
+  medicineInput.value = "";
+  timeInput.value = "";
+}
 // ✅ Render Slot
 function renderSlot(key) {
   const slot = document.getElementById(`slot-${key}`);
