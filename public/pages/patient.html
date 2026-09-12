@@ -582,44 +582,119 @@ function getCellState(items, slot, dateStr) {
     const today =
         formatLocalDate(now);
 
-    const hour =
-        now.getHours();
-
-    const slotRange =
-        SLOT_TIME[slot];
-
-    if (!slotRange)
+    // No schedule
+    if (!items || items.length === 0) {
         return "UPCOMING";
+    }
+
+    // ==========================================
+    // TAKEN
+    // ==========================================
 
     const isTaken =
         items.some(
-            i => i.status === "TAKEN"
+            item => item.status === "TAKEN"
         );
 
     // TAKEN always wins
-    if (isTaken)
+    if (isTaken) {
         return "TAKEN";
+    }
 
-    // FUTURE DAYS
-    if (dateStr > today)
+
+    // ==========================================
+    // FUTURE DATE
+    // ==========================================
+
+    if (dateStr > today) {
         return "UPCOMING";
+    }
 
-    // PAST DAYS
-    if (dateStr < today)
+
+    // ==========================================
+    // PAST DATE
+    // ==========================================
+
+    if (dateStr < today) {
         return "MISSED";
+    }
+
 
     // ==========================================
     // TODAY
     // ==========================================
 
-    if (hour < slotRange.start)
+    /*
+       A compartment can contain multiple
+       medications, but they all have the
+       same actualTime.
+
+       Example:
+
+       Aspirin     08:00
+       Metformin   08:00
+       Vitamin D   08:00
+
+       Active window:
+
+       08:00 → 08:30
+    */
+
+    const medicationTime =
+        items[0].actualTime;
+
+    if (!medicationTime) {
         return "UPCOMING";
+    }
+
+
+    // ==========================================
+    // CREATE TODAY'S MEDICATION DATETIME
+    // ==========================================
+
+    const medicationDateTime =
+        new Date(`${dateStr}T${medicationTime}`);
+
+
+    // 30 minute active window
+    const activeStart =
+        medicationDateTime;
+
+    const activeEnd =
+        new Date(
+            medicationDateTime.getTime() +
+            (30 * 60 * 1000)
+        );
+
+
+    // ==========================================
+    // ACTIVE WINDOW
+    // ==========================================
 
     if (
-        hour >= slotRange.start &&
-        hour <= slotRange.end
-    )
+        now >= activeStart &&
+        now < activeEnd
+    ) {
+
         return "ACTIVE";
+
+    }
+
+
+    // ==========================================
+    // BEFORE MEDICATION TIME
+    // ==========================================
+
+    if (now < activeStart) {
+
+        return "UPCOMING";
+
+    }
+
+
+    // ==========================================
+    // AFTER 30 MINUTES
+    // ==========================================
 
     return "MISSED";
 }
